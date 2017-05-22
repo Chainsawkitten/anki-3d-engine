@@ -102,6 +102,16 @@ Error Ms::initInternal(const ConfigSet& initializer)
 
 Error Ms::buildCommandBuffers(RenderingContext& ctx, U threadId, U threadCount) const
 {
+	return buildCommandBuffersCommon(ctx, threadId, threadCount, Pass::MS_FS);
+}
+
+Error Ms::buildCommandBuffersEarlyZ(RenderingContext& ctx, U threadId, U threadCount) const
+{
+	return buildCommandBuffersCommon(ctx, threadId, threadCount, Pass::SM);
+}
+
+Error Ms::buildCommandBuffersCommon(RenderingContext& ctx, U threadId, U threadCount, Pass pass) const
+{
 	ANKI_TRACE_START_EVENT(RENDER_MS);
 
 	// Get some stuff
@@ -122,7 +132,15 @@ Error Ms::buildCommandBuffers(RenderingContext& ctx, U threadId, U threadCount) 
 		}
 		cinf.m_framebuffer = m_fb;
 		CommandBufferPtr cmdb = m_r->getGrManager().newInstance<CommandBuffer>(cinf);
-		ctx.m_ms.m_commandBuffers[threadId] = cmdb;
+
+		if(pass == Pass::MS_FS)
+		{
+			ctx.m_ms.m_commandBuffers[threadId] = cmdb;
+		}
+		else
+		{
+			ctx.m_ms.m_commandBuffersEz[threadId] = cmdb;
+		}
 
 		// Inform on RTs
 		TextureSurfaceInfo surf(0, 0, 0, 0);
@@ -134,8 +152,20 @@ Error Ms::buildCommandBuffers(RenderingContext& ctx, U threadId, U threadCount) 
 		// Set some state, leave the rest to default
 		cmdb->setViewport(0, 0, m_r->getWidth(), m_r->getHeight());
 
+		if(pass == Pass::SM)
+		{
+			for(U i = 0; i < MS_COLOR_ATTACHMENT_COUNT; ++i)
+			{
+				cmdb->setColorChannelWriteMask(i, ColorBit::NONE);
+			}
+		}
+		else
+		{
+			cmdb->setDepthCompareOperation(CompareOperation::EQUAL);
+		}
+
 		// Start drawing
-		ANKI_CHECK(m_r->getSceneDrawer().drawRange(Pass::MS_FS,
+		ANKI_CHECK(m_r->getSceneDrawer().drawRange(pass,
 			ctx.m_viewMat,
 			ctx.m_viewProjMatJitter,
 			cmdb,
@@ -156,6 +186,14 @@ void Ms::run(RenderingContext& ctx)
 
 	// Set some state anyway because other stages may depend on it
 	cmdb->setViewport(0, 0, m_r->getWidth(), m_r->getHeight());
+
+	for(U i = 0; i < m_r->getThreadPool().getThreadsCount(); ++i)
+	{
+		if(ctx.m_ms.m_commandBuffersEz[i].isCreated())
+		{
+			cmdb->pushSecondLevelCommandBuffer(ctx.m_ms.m_commandBuffersEz[i]);
+		}
+	}
 
 	for(U i = 0; i < m_r->getThreadPool().getThreadsCount(); ++i)
 	{

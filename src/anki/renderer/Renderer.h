@@ -60,6 +60,7 @@ public:
 	{
 	public:
 		Array<CommandBufferPtr, ThreadPool::MAX_THREADS> m_commandBuffers;
+		Array<CommandBufferPtr, ThreadPool::MAX_THREADS> m_commandBuffersEz;
 		U32 m_lastThreadWithWork = 0;
 	} m_ms;
 	/// @}

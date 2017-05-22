@@ -508,6 +508,7 @@ Error Renderer::buildCommandBuffersInternal(RenderingContext& ctx, U32 threadId,
 	// MS
 	//
 	ANKI_CHECK(m_ms->buildCommandBuffers(ctx, threadId, threadCount));
+	ANKI_CHECK(m_ms->buildCommandBuffersEarlyZ(ctx, threadId, threadCount));
 
 	// Append to the last MS's cmdb the occlusion tests
 	if(ctx.m_ms.m_lastThreadWithWork == threadId)
@@ -518,6 +519,7 @@ Error Renderer::buildCommandBuffersInternal(RenderingContext& ctx, U32 threadId,
 	if(ctx.m_ms.m_commandBuffers[threadId])
 	{
 		ctx.m_ms.m_commandBuffers[threadId]->flush();
+		ctx.m_ms.m_commandBuffersEz[threadId]->flush();
 	}
 
 	// SM

@@ -7,6 +7,7 @@
 
 #include <anki/renderer/RenderingPass.h>
 #include <anki/Gr.h>
+#include <anki/resource/RenderingKey.h>
 
 namespace anki
 {
@@ -34,6 +35,8 @@ anki_internal:
 
 	ANKI_USE_RESULT Error buildCommandBuffers(RenderingContext& ctx, U threadId, U threadCount) const;
 
+	ANKI_USE_RESULT Error buildCommandBuffersEarlyZ(RenderingContext& ctx, U threadId, U threadCount) const;
+
 	void setPreRunBarriers(RenderingContext& ctx);
 
 	void run(RenderingContext& ctx);
@@ -47,6 +50,8 @@ private:
 
 	/// Create a G buffer FBO
 	ANKI_USE_RESULT Error createRt();
+
+	ANKI_USE_RESULT Error buildCommandBuffersCommon(RenderingContext& ctx, U threadId, U threadCount, Pass pass) const;
 };
 /// @}
 
